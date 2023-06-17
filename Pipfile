@@ -1,0 +1,33 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+ffmpeg-python = "*"
+jupyterlab = "*"
+prompt-toolkit = "*"
+moviepy = "*"
+python-slugify = "*"
+beautifulsoup4 = "*"
+openai = "*"
+requests = "*"
+chardet = "*"
+charset-normalizer = "*"
+pandas = "*"
+elevenlabs = "*"
+pillow = "*"
+giphy-client = "*"
+matplotlib = "*"
+scikit-learn = "*"
+scipy = "*"
+plotly = "*"
+weaviate-client = "*"
+
+[dev-packages]
+pylint = "*"
+autopep8 = "*"
+pandas = "*"
+
+[requires]
+python_version = "3.11"
