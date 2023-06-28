@@ -1,0 +1,3 @@
+Extract keywords from this text:
+
+$text
