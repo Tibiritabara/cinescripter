@@ -2,7 +2,7 @@
   <a href="https://github.com/Tibiritabara/cinescripter"><img src="./docs/logo/png/logo-no-background.png" alt="CineScripter"></a>
 </p>
 <p align="center">
-    <em>CineScripter, support your community generating video content on your interactions and data</em>
+    <em>CineScripter, supports your community, by enabling you to automatically create video content based own data</em>
 </p>
 
 ---
