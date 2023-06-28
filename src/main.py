@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 from utils.logs import logger
 from generation.generation import Generator
 from generation.script import Script
@@ -34,14 +35,15 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+async def main():
     logger.info("Initializing video generation ...")
     args = parse_args()
     logger.info("Arguments: %s", args)
-    script = Script(args.prompt, args.tone).generate()
-    video = Generator(args.prompt, script, args.fps, args.duration).generate()
+    script = Script().generate(args.prompt, args.tone)
+    logger.info("Script: %s", script)
+    video = await Generator(args.prompt, script, args.fps, args.duration).generate()
     return video
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

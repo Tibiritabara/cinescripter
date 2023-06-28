@@ -1,41 +1,48 @@
 import os
 
-import requests
-from bs4 import BeautifulSoup
-from slugify import slugify
-
-from generation.keywords import Keyword
-from utils.logs import logger
 import giphy_client
-from giphy_client.rest import ApiException
-from pprint import pprint
+import requests
 
+from utils.common import SettingsLoader
+from utils.logs import logger
 
 FOLDER_PREFIX = "gifs/"
-TIMEOUT = 30
+MAX_ALLOWED_KEYWORDS_LENGTH = 50
 
 class Gifs:
-    def __init__(self, sort, topic, output_folder):
-        self.sort = sort
-        self.topic = topic
-        self.output_folder = output_folder
 
-    def generate(self,):
-        os.makedirs(os.path.join(self.output_folder, FOLDER_PREFIX), exist_ok=True)
-        keyword = Keyword(self.topic).generate()
-        topic_slug = slugify(keyword)
+    APP_NAME = "GIPHY"
+
+    def __init__(self, **kwargs):
+        self.options = SettingsLoader.load(
+            self.APP_NAME,
+            kwargs
+        )
+
+    async def generate(self, section: dict, output_folder: str) -> str:
+        os.makedirs(os.path.join(output_folder, FOLDER_PREFIX), exist_ok=True)
         api_instance = giphy_client.DefaultApi()
+        keywords = section["keywords"]
+        max_keywords = self.options.get("max_keywords")
+        keywords_lenght = len(",".join(keywords[:max_keywords]))
+        while keywords_lenght > MAX_ALLOWED_KEYWORDS_LENGTH:
+            max_keywords -= 1
+            keywords_lenght = len(",".join(keywords[:max_keywords]))
         api_response = api_instance.gifs_search_get(
-            os.getenv("GIPHY_API_KEY"),
-            keyword,
+            self.options.get("api_key"),
+            ",".join(keywords[:max_keywords]),
             limit=1
         )
-        gif_id = api_response.data[0]
-        image_url = gif_id.images.downsized.url
-        img_response = requests.get(image_url, timeout=TIMEOUT)
-        file_name = f"{self.sort}-{topic_slug}.gif"
-        file_path = os.path.join(self.output_folder, FOLDER_PREFIX, file_name)
-        with open(file_path, "wb") as f:
-            f.write(img_response.content)
+        gif = api_response.data[0]
+        image_url = gif.images.original.mp4
+        img_response = requests.get(
+            image_url,
+            timeout=self.options.get("timeout")
+        )
+        file_name = f"{section['index']}-{section['topic_slug']}.mp4"
+        file_path = os.path.join(output_folder, FOLDER_PREFIX, file_name)
+        with open(file_path, "wb") as fl:
+            fl.write(img_response.content)
         logger.info('Downloaded %s', file_path)
-        return file_path
+        section["media_path"] = file_path
+        return section

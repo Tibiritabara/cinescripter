@@ -1,32 +1,33 @@
 import os
 
+from elevenlabs import generate, save
+
+from utils.common import SettingsLoader
 from utils.logs import logger
 
-from elevenlabs import generate, save
-from slugify import slugify
-from generation.keywords import Keyword
-
 FOLDER_PREFIX = "audio/"
-TIMEOUT = 30
 
 class Audio:
-    def __init__(self, sort, text, output_folder):
-        self.sort = sort
-        self.text = text
-        self.output_folder = output_folder
 
-    def generate(self,):
-        logger.info('Generating audio')
-        os.makedirs(os.path.join(self.output_folder, FOLDER_PREFIX), exist_ok=True)
-        keyword = Keyword(self.text).generate()
-        topic_slug = slugify(keyword)
-        audio = generate(
-            text=self.text,
-            voice=os.getenv("VOICE_ID"),
-            model="eleven_monolingual_v1"
+    APP_NAME = "ELEVENLABS"
+
+    def __init__(self, **kwargs):
+        self.options = SettingsLoader.load(
+            self.APP_NAME,
+            kwargs
         )
-        file_name = f"{self.sort}-{topic_slug}.wav"
-        file_path = os.path.join(self.output_folder, FOLDER_PREFIX, file_name)
+
+    async def generate(self, section: dict, output_folder: str) -> str:
+        logger.info('Generating audio for %s', section)
+        os.makedirs(os.path.join(output_folder, FOLDER_PREFIX), exist_ok=True)
+        audio = generate(
+            text=section['sentence'],
+            voice=self.options.get("voice"),
+            model=self.options.get("model"),
+        )
+        file_name = f"{section['index']}-{section['topic_slug']}.wav"
+        file_path = os.path.join(output_folder, FOLDER_PREFIX, file_name)
         save(audio, file_path)
         logger.info('Downloaded %s', file_path)
-        return file_path
+        section["audio_path"] = file_path
+        return section
