@@ -1,16 +1,42 @@
-from utils.openai_client import get_embedding, generate_video_script
-from utils.weaviate_client import get_answers
+import openai
+
+from services.embedding import Embeddings
+from services.weaviate import Weaviate
+from utils.common import SettingsLoader
+from utils.logs import logger
+
 
 class Script:
-    def __init__(self, question, tone):
-        self.question = question
-        self.tone = tone
+
+    APP_NAME = "OPENAI_SCRIPT"
+
+    def __init__(self, **kwargs):
+        self.options = SettingsLoader.load(
+            self.APP_NAME,
+            kwargs
+        )
 
     def _create_paragraphs(self, answers):
         return '\n'.join(answers)
 
-    def generate(self,):
-        question_embedding = get_embedding(self.question)
-        answers = get_answers(question_embedding)
-        full_text = self._create_paragraphs(answers)
-        return generate_video_script(self.question, full_text, self.tone)
+    def generate(self, question: str, tone: str) -> str:
+        question_embedding = Embeddings().embed(question)
+        context = self._create_paragraphs(Weaviate().get_answers(question_embedding))
+        return self._get_script(context, question, tone)
+
+    def _get_script(self, context: str, question: str, tone: str) -> str:
+        prompt = self.options.get("prompt").substitute({
+            "tone": tone,
+            "question": question,
+        })
+        logger.debug("OpenAI parameters %s", {"tone": tone, "question": question, "prompt": prompt, "context": context})
+
+        response = openai.ChatCompletion.create(
+            model=self.options.get("model"),
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": context},
+            ]
+        )
+
+        return response["choices"][0]["message"]["content"]
