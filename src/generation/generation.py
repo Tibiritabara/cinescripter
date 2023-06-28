@@ -1,129 +1,184 @@
-import copy
+import asyncio
 import os
-import re
+import random
+from typing import Dict, List
 
+from moviepy.editor import concatenate_videoclips
 from slugify import slugify
 
-from generation.images import Images
 from generation.audio import Audio
-from generation.video import Video
-from generation.summarizer import Summarizer
 from generation.gifs import Gifs
-from moviepy.editor import concatenate_videoclips
+from generation.images import Images
+from generation.video import Video
+from services.keywords import Keyword
+from utils.common import SettingsLoader
 from utils.logs import logger
 
-import glob
-
-
-OUTPUT_FOLDER = "./output/"
 
 class Generator:
-    def __init__(self, prompt, script, fps, duration):
+
+    APP_NAME = "GENERATOR"
+
+    def __init__(
+            self,
+            prompt: str,
+            script: str,
+            fps: int,
+            duration: int,
+            **kwargs,
+        ):
         self.prompt = prompt
         self.script = script
         self.fps = fps
         self.duration = duration
-        self.output = os.path.join(OUTPUT_FOLDER, slugify(self.prompt, max_length=30))
+        self.options = SettingsLoader.load(self.APP_NAME, kwargs)
+        self.output = os.path.join(
+            self.options.get('output_folder'),
+            slugify(self.prompt, max_length=30)
+        )
 
-    def _generate_broll(self,):
-        broll = self._extract_broll_list()
-        logger.debug(broll)
-        images = []
-        index = 0
-        for topic in broll:
-            image_path = Images(index, topic, self.output).generate()
-            images.append(image_path)
-            index += 1
+    async def _generate_images(self, sections: list):
+        # broll = self._extract_broll_list()
+        tasks: List[asyncio.Task] = []
+        for section in sections:
+            tasks.append(
+                Images().generate(
+                    section,
+                    self.output,
+                )
+            )
+        images = await asyncio.gather(*tasks)
         return images
 
-    def _generate_gifs(self,):
-        broll = self._extract_broll_list()
-        gifs = []
-        index = 0
-        for topic in broll:
-            gif_path = Gifs(index, topic, self.output).generate()
-            gifs.append(gif_path)
-            index += 1
+    async def _generate_gifs(self, sections: list):
+        # broll = self._extract_broll_list()
+        tasks: List[asyncio.Task] = []
+        for section in sections:
+            tasks.append(
+                Gifs().generate(
+                    section,
+                    self.output
+                )
+            )
+        gifs = await asyncio.gather(*tasks)
         return gifs
 
-    def _generate_audio(self,):
-        voices = self.__extract_audio_list()
-        logger.debug(voices)
-        audio = []
-        index = 0
-        for voice in voices:
-            audio_path = Audio(index, voice, self.output).generate()
-            audio.append(audio_path)
-            index += 1
+    async def _generate_audio(self, sections):
+        tasks: List[asyncio.Task] = []
+        for section in sections:
+            tasks.append(
+                Audio().generate(
+                    section,
+                    self.output,
+                )
+            )
+        audio = await asyncio.gather(*tasks)
         return audio
 
-    def __extract_audio_list(self,):
-        # broll = re.findall(r'\[.*?\]', self.script)
-        # script = copy.copy(self.script)
-        # for item in broll:
-        #     script = script.replace(item, '')
-       
-        voices = self.script.split('\n')
-        voices_list = []
-        for voice in voices:
-            if voice == '\n' or voice == '':
-                continue
-            voice = voice.replace('Host: ', '')
-            voice = voice.replace('Guest: ', '')
-            voice = voice.replace('Narrator: ', '')
-            voice = voice.replace('"', '')
-            voice = voice.rstrip()
-            voices_list.append(voice)
-        return voices_list
-
-    def _generate_video(self, broll, audio, gifs):
-        clips = self._generate_video_clips(broll, audio, gifs)
+    async def _generate_video(self, media: dict, audio: dict):
+        clips = await self._generate_video_clips(media, audio)
+        clips = sorted(clips, key=lambda x: x["index"])
+        clips = [clip["clip"] for clip in clips]
         video = concatenate_videoclips(clips, method='compose')
         file_path = os.path.join(self.output, "video.mp4")
         video.write_videofile(file_path)
         return file_path
 
-    def _generate_video_clips(self, broll, audio, gifs):
-        count = len(broll)
-        clips = []
+    async def _generate_video_clips(self, media: dict, audio: dict):
+        count = len(media)
+        tasks: List[asyncio.Task] = []
         for index in range(count):
-            clip = Video(
-                index,
-                broll[index],
-                audio[index],
-                gifs[index],
-                self.fps,
-                self.output,
-            ).generate()
-            clips.append(clip)
+            tasks.append(
+                Video().generate(
+                    index,
+                    media[index],
+                    audio[index],
+                    self.fps,
+                    self.output,
+                )
+            )
+        clips = await asyncio.gather(*tasks)
         return clips
-        
+
     def _generate_code_block(self,):
         pass
 
-    def _extract_broll_list(self):
-        paragraphs = self.script.split('\n')
-        topics = []
-        for paragraph in paragraphs:
-            if paragraph == '\n' or paragraph == '':
+    def _extract_video_sections(self):
+        sentences = self.script.replace('\n', '').split('.')
+        sections = []
+        for index, sentence in enumerate(sentences):
+            if sentence == '\n' or sentence == '':
                 continue
-            sentence = Summarizer(paragraph).generate()
-            topics.append(sentence)
-        # broll = re.findall(r'\[.*?\]', self.script)
-        # topics = []
-        # for item in broll:
-        #     topics.append(item[1:-1])
-        return topics
+            keywords = Keyword().generate(sentence)
+            topic_slug = slugify(','.join(keywords))
+            sections.append({
+                "index": index,
+                "sentence": sentence,
+                "keywords": keywords,
+                "topic_slug": topic_slug,
+            })
+        return sections
 
-    def generate(self,):
+    async def generate(self,):
         # Create output folder
         os.makedirs(self.output, exist_ok=True)
+        sections = self._extract_video_sections()
+        logger.info("Sections %s", sections)
 
-        # Generate broll
-        audio = self._generate_audio()
-        broll = self._generate_broll()
-        gifs = self._generate_gifs()
+        gif_sections = []
+        image_sections = []
+        for section in sections:
+            random_list = random.choice([gif_sections, image_sections])
+            random_list.append(section)
 
-        video = self._generate_video(broll, audio, gifs)
+        images, gifs, audio = await asyncio.gather(
+            self._generate_images(image_sections),
+            self._generate_gifs(gif_sections),
+            self._generate_audio(sections),
+        )
+        # images, gifs, audio = self.test_files()
+
+        media = sorted(images + gifs, key=lambda x: x["index"])
+
+        video = await self._generate_video(media, audio)
         return video
         # return True
+
+    # def test_files(self,):
+    #     image_paths = next(os.walk('./output/what-is-artificial-intelligenc/images'), (None, None, []))[2]
+    #     images = []
+    #     for image in image_paths:
+    #         if image == '.DS_Store':
+    #             continue
+    #         images.append({
+    #             "index": int(os.path.basename(image).split('-')[0]),
+    #             "topic_slug": "-".join(os.path.basename(image).split('-')[1:]).replace(".jpg", ""),
+    #             "file_path": os.path.join('./output/what-is-artificial-intelligenc/images', image),
+    #         })
+    #     images = sorted(images, key=lambda x: x["index"])
+
+    #     gif_paths = next(os.walk('./output/what-is-artificial-intelligenc/gifs'), (None, None, []))[2]
+    #     gifs = []
+    #     for gif in gif_paths:
+    #         if gif == '.DS_Store':
+    #             continue
+    #         gifs.append({
+    #             "index": int(os.path.basename(gif).split('-')[0]),
+    #             "topic_slug": "-".join(os.path.basename(gif).split('-')[1:]).replace(".mp4", ""),
+    #             "file_path": os.path.join('./output/what-is-artificial-intelligenc/gifs', gif)
+    #         })
+    #     gifs = sorted(gifs, key=lambda x: x["index"])
+
+    #     audio_paths = next(os.walk('./output/what-is-artificial-intelligenc/audio'), (None, None, []))[2]
+    #     audios = []
+    #     for audio in audio_paths:
+    #         if audio == '.DS_Store':
+    #             continue
+    #         audios.append({
+    #             "index": int(os.path.basename(audio).split('-')[0]),
+    #             "topic_slug": "-".join(os.path.basename(audio).split('-')[1:]).replace(".wav", ""),
+    #             "file_path": os.path.join('./output/what-is-artificial-intelligenc/audio', audio),
+    #         })
+    #     audios = sorted(audios, key=lambda x: x["index"])
+
+    #     return images, gifs, audios
