@@ -23,7 +23,7 @@ The key features are:
 
 Python 3.7+
 
-CineScripter stands on the shoulder of giants
+CineScripter harnesses bespoke solutions for content generation:
 
 * <a href="https://platform.openai.com/">OpenAI for the script generation</a>
 * <a href="https://www.unsplash.com/">Unsplash for relevant media</a>
