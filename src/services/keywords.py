@@ -1,10 +1,10 @@
-import os
 import re
+from typing import List
+
 import openai
 
-from utils.logs import logger
 from utils.common import SettingsLoader
-from typing import List
+from utils.logs import logger
 
 
 class Keyword:
@@ -31,7 +31,7 @@ class Keyword:
             presence_penalty=self.options.get("presence_penalty"),
         )
 
-        result = response.choices[0].text.lower().replace('text:', '').replace('keywords:', '').replace('\n', ',')
+        result = response.choices[0].text.lower().replace('text:', '').replace('keywords:', '').replace('\n', '')
         result = re.sub(r"[\d\.]", '', result)
         results = result.split(',')
         keywords = [keyword.replace('-', '').lstrip().rstrip() for keyword in results if keyword != '']

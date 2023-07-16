@@ -29,5 +29,5 @@ class Audio:
         file_path = os.path.join(output_folder, FOLDER_PREFIX, file_name)
         save(audio, file_path)
         logger.info('Downloaded %s', file_path)
-        section["audio_path"] = file_path
+        section["media"]["audio_path"] = file_path
         return section

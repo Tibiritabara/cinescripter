@@ -1,7 +1,8 @@
 import asyncio
 import os
 import random
-from typing import Dict, List
+import re
+from typing import List
 
 from moviepy.editor import concatenate_videoclips
 from slugify import slugify
@@ -75,8 +76,8 @@ class Generator:
         audio = await asyncio.gather(*tasks)
         return audio
 
-    async def _generate_video(self, media: dict, audio: dict):
-        clips = await self._generate_video_clips(media, audio)
+    async def _generate_video(self, sections: dict,):
+        clips = await self._generate_video_clips(sections)
         clips = sorted(clips, key=lambda x: x["index"])
         clips = [clip["clip"] for clip in clips]
         video = concatenate_videoclips(clips, method='compose')
@@ -84,15 +85,14 @@ class Generator:
         video.write_videofile(file_path)
         return file_path
 
-    async def _generate_video_clips(self, media: dict, audio: dict):
-        count = len(media)
+    async def _generate_video_clips(self, sections: dict):
+        count = len(sections)
         tasks: List[asyncio.Task] = []
         for index in range(count):
             tasks.append(
                 Video().generate(
                     index,
-                    media[index],
-                    audio[index],
+                    sections[index],
                     self.fps,
                     self.output,
                 )
@@ -104,7 +104,7 @@ class Generator:
         pass
 
     def _extract_video_sections(self):
-        sentences = self.script.replace('\n', '').split('.')
+        sentences = re.split(r'(?<=[.!?])', self.script.replace('\n', ' '))
         sections = []
         for index, sentence in enumerate(sentences):
             if sentence == '\n' or sentence == '':
@@ -116,69 +116,48 @@ class Generator:
                 "sentence": sentence,
                 "keywords": keywords,
                 "topic_slug": topic_slug,
+                "media": {}
             })
         return sections
 
     async def generate(self,):
         # Create output folder
         os.makedirs(self.output, exist_ok=True)
+
+        # Save Script into a text file
+        with open(os.path.join(self.output, "script.txt"), "w", encoding="utf-8") as f:
+            f.write(self.script)
+
+        # Divide sections and get keywords per section
         sections = self._extract_video_sections()
         logger.info("Sections %s", sections)
 
         gif_sections = []
         image_sections = []
         for section in sections:
-            random_list = random.choice([gif_sections, image_sections])
+            random_list = random.choice([gif_sections,])
             random_list.append(section)
 
-        images, gifs, audio = await asyncio.gather(
+        await asyncio.gather(
             self._generate_images(image_sections),
             self._generate_gifs(gif_sections),
             self._generate_audio(sections),
         )
-        # images, gifs, audio = self.test_files()
 
-        media = sorted(images + gifs, key=lambda x: x["index"])
-
-        video = await self._generate_video(media, audio)
+        video = await self._generate_video(sections)
         return video
-        # return True
 
-    # def test_files(self,):
-    #     image_paths = next(os.walk('./output/what-is-artificial-intelligenc/images'), (None, None, []))[2]
-    #     images = []
-    #     for image in image_paths:
-    #         if image == '.DS_Store':
-    #             continue
-    #         images.append({
-    #             "index": int(os.path.basename(image).split('-')[0]),
-    #             "topic_slug": "-".join(os.path.basename(image).split('-')[1:]).replace(".jpg", ""),
-    #             "file_path": os.path.join('./output/what-is-artificial-intelligenc/images', image),
-    #         })
-    #     images = sorted(images, key=lambda x: x["index"])
+    # def _test_images(self, image_sections):
+    #     for section in image_sections:
+    #         section["media"]["broll_path"] = os.path.join('./output/what-is-artificial-intelligenc/images', f'{section["index"]}-{section["topic_slug"]}.jpg')
+    #     return image_sections
+    
+    # def _test_gifs(self, gif_sections):
+    #     for section in gif_sections:
+    #         section["media"]["broll_path"] = os.path.join('./output/what-is-artificial-intelligenc/gifs', f'{section["index"]}-{section["topic_slug"]}.mp4')
+    #     return gif_sections
 
-    #     gif_paths = next(os.walk('./output/what-is-artificial-intelligenc/gifs'), (None, None, []))[2]
-    #     gifs = []
-    #     for gif in gif_paths:
-    #         if gif == '.DS_Store':
-    #             continue
-    #         gifs.append({
-    #             "index": int(os.path.basename(gif).split('-')[0]),
-    #             "topic_slug": "-".join(os.path.basename(gif).split('-')[1:]).replace(".mp4", ""),
-    #             "file_path": os.path.join('./output/what-is-artificial-intelligenc/gifs', gif)
-    #         })
-    #     gifs = sorted(gifs, key=lambda x: x["index"])
-
-    #     audio_paths = next(os.walk('./output/what-is-artificial-intelligenc/audio'), (None, None, []))[2]
-    #     audios = []
-    #     for audio in audio_paths:
-    #         if audio == '.DS_Store':
-    #             continue
-    #         audios.append({
-    #             "index": int(os.path.basename(audio).split('-')[0]),
-    #             "topic_slug": "-".join(os.path.basename(audio).split('-')[1:]).replace(".wav", ""),
-    #             "file_path": os.path.join('./output/what-is-artificial-intelligenc/audio', audio),
-    #         })
-    #     audios = sorted(audios, key=lambda x: x["index"])
-
-    #     return images, gifs, audios
+    # def _test_audio(self, audio_sections):
+    #     for section in audio_sections:
+    #         section["media"]["audio_path"] = os.path.join('./output/what-is-artificial-intelligenc/audio', f'{section["index"]}-{section["topic_slug"]}.wav')
+    #     return audio_sections

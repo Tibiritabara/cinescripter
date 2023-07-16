@@ -1,3 +1,5 @@
-Extract keywords from this text:
+Extract the most relevant english keywords from this text:
 
 $text
+
+Please write them comma separated.

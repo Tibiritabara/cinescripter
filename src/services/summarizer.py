@@ -1,8 +1,7 @@
-import os
-
 import openai
-from utils.logs import logger
+
 from utils.common import SettingsLoader
+from utils.logs import logger
 
 
 class Summarizer:

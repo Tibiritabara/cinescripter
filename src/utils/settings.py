@@ -2,16 +2,18 @@ import os
 from pathlib import Path
 from string import Template
 
+PROMPTS_PATH = os.getenv("PROMPTS_PATH", "./prompts/")
 
 ELEVENLABS = {
     "voice": os.getenv("VOICE_ID"),
-    "model": "eleven_monolingual_v1",
+    "model": "eleven_multilingual_v1",
 }
 
 GIPHY = {
     "api_key": os.getenv("GIPHY_API_KEY"),
     "timeout": 30,
     "max_keywords": 5,
+    "api": "https://api.giphy.com"
 }
 
 UNSPLASH = {
@@ -21,6 +23,8 @@ UNSPLASH = {
     "timeout": 30,
     "access_key": os.getenv("UNSPLASH_ACCESS_KEY"),
     "secret_key": os.getenv("UNSPLASH_SECRET_KEY"),
+    "api": "https://api.unsplash.com",
+    "max_keywords": 5,
 }
 
 WEAVIATE = {
@@ -36,7 +40,7 @@ OPENAI_SUMMARIZER = {
     "top_p": 1,
     "frequency_penalty": 0.8,
     "presence_penalty": 0,
-    "prompt": Template(Path("./prompts/summary.txt").read_text(encoding="utf-8")),
+    "prompt": Template(Path(os.path.join(PROMPTS_PATH, "summary.txt")).read_text(encoding="utf-8")),
 }
 
 OPENAI_EMBEDDINGS = {
@@ -50,7 +54,7 @@ OPENAI_KEYWORDS = {
     "top_p": 1,
     "frequency_penalty": 0.8,
     "presence_penalty": 0,
-    "prompt": Template(Path("./prompts/keywords.txt").read_text(encoding="utf-8")),
+    "prompt": Template(Path(os.path.join(PROMPTS_PATH, "keywords.txt")).read_text(encoding="utf-8")),
     "max_keywords": 5,
 }
 
@@ -66,4 +70,8 @@ VIDEO = {
 
 GENERATOR = {
     "output_folder": "./output/",
+}
+
+LOGS = {
+    "level": os.getenv("LOG_LEVEL", "DEBUG")
 }

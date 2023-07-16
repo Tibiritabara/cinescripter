@@ -24,8 +24,7 @@ class Video:
     async def generate(
             self,
             sort: int,
-            media: dict,
-            audio: dict,
+            sections: dict,
             fps: int,
             output_folder: str,
     ):
@@ -33,14 +32,18 @@ class Video:
         os.makedirs(os.path.join(output_folder, FOLDER_PREFIX), exist_ok=True)
 
         # AudioFileClip with generated voice
-        audio_clip = AudioFileClip(audio["audio_path"])
+        audio_clip = AudioFileClip(sections["media"]["audio_path"])
         clip_duration = audio_clip.duration
-        extension = pathlib.Path(media["media_path"]).suffix
+
+        # ImageClip or VideoFileClip with broll
+        extension = pathlib.Path(sections["media"]["broll_path"]).suffix
         if extension == ".jpg":
-            clip = ImageClip(media["media_path"])
+            clip = ImageClip(sections["media"]["broll_path"])
         else:
-            clip = VideoFileClip(media["media_path"])
+            clip = VideoFileClip(sections["media"]["broll_path"])
             clip_duration = clip.duration
+
+        # Resize clip
         clip = resize(
             clip,
             width=self.options.get("width", 1920),
@@ -48,11 +51,14 @@ class Video:
         )
         if extension != ".jpg":
             clip = clip.loop(duration=clip_duration)
+        
+        # Add audio and duration to clip
         clip = clip.set_audio(audio_clip)
         clip.duration = audio_clip.duration
         clip.fps = fps
 
-        file_name = f"{audio['index']}-{audio['topic_slug']}.mp4"
+        # Store clip
+        file_name = f"{sections['index']}-{sections['topic_slug']}.mp4"
         file_path = os.path.join(output_folder, FOLDER_PREFIX, file_name)
         clip.write_videofile(file_path)
         logger.info('Stored video clip %s', file_path)

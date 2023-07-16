@@ -1,5 +1,6 @@
 import utils.settings as settings
 
+
 class SettingsLoader():
 
     @staticmethod

@@ -159,4 +159,4 @@ cython_debug/
 #.idea/
 output/
 .vscode/
-
+data/
