@@ -19,12 +19,12 @@ class Script:
     def _create_paragraphs(self, answers):
         return '\n'.join(answers)
 
-    def generate(self, question: str, tone: str) -> str:
+    def get_context(self, question: str) -> str:
         question_embedding = Embeddings().embed(question)
         context = self._create_paragraphs(Weaviate().get_answers(question_embedding))
-        return self._get_script(context, question, tone)
+        return context
 
-    def _get_script(self, context: str, question: str, tone: str) -> str:
+    def get_script(self, context: str, question: str, tone: str) -> str:
         prompt = self.options.get("prompt").substitute({
             "tone": tone,
             "question": question,

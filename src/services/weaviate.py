@@ -1,7 +1,7 @@
-import os
-
 import weaviate
+
 from utils.common import SettingsLoader
+
 
 class Weaviate:
 
@@ -29,7 +29,7 @@ class Weaviate:
         )
 
         answers = response["data"]["Get"]["Message"]
-
+        
         outputs = []
         for answer in answers:
             message = answer["message"]

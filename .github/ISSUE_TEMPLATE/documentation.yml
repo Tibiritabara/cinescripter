@@ -1,0 +1,63 @@
+name: 📄 Documentation issue
+description: Documentation issues or request
+labels: [documentation]
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for submitting a documentation issue. CineScripter docs are open source! To get involved, read the documentation Contributor Guide
+  - type: markdown
+    attributes:
+      value: URL(s) with the issue Please provide a link to the documentation entry.
+  - type: input
+    id: description
+    attributes:
+      label: Description of issue (what needs changing)
+      description: Kinds of documentation problems
+  - type: input
+    attributes:
+      label: Clear description
+      description: For example, why should someone use this method? How is it useful?
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Correct links
+      description: Is the link to the source code correct?
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Parameters defined
+      description: Are all parameters defined and formatted correctly?
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Returns defined
+      description: Are return values defined?
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Raises listed and defined
+      description: Are the errors defined? For example,
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Usage example
+      description: Is there a usage example? 
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Request visuals, if applicable
+      description: Are there currently visuals? If not, will it clarify the content?
+    validations:
+      required: false
+  - type: input
+    attributes:
+       label: Submit a pull request?
+       description: Are you planning to also submit a pull request to fix the issue? See the [docs](https://github.com/Tibiritabara/cinescripter/blob/main/CONTRIBUTING.md) for more information.
+    validations:
+      required: false

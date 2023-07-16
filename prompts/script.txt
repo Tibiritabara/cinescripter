@@ -6,7 +6,5 @@ Generate the script content based on the answers provided by the user and follow
 2. Introduce the topic
 3. Do not use external URLs
 4. Explain the topic in 3000 words
-5. Specify video transitions
 6. Wrap up the video
 7. Invite to subscribe to the youtube channel
-8. Do not reference URLs on the text

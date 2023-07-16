@@ -1,7 +1,7 @@
 import os
 
-import giphy_client
 import requests
+import random
 
 from utils.common import SettingsLoader
 from utils.logs import logger
@@ -18,23 +18,26 @@ class Gifs:
             self.APP_NAME,
             kwargs
         )
-
+    
     async def generate(self, section: dict, output_folder: str) -> str:
         os.makedirs(os.path.join(output_folder, FOLDER_PREFIX), exist_ok=True)
-        api_instance = giphy_client.DefaultApi()
         keywords = section["keywords"]
-        max_keywords = self.options.get("max_keywords")
-        keywords_lenght = len(",".join(keywords[:max_keywords]))
-        while keywords_lenght > MAX_ALLOWED_KEYWORDS_LENGTH:
-            max_keywords -= 1
-            keywords_lenght = len(",".join(keywords[:max_keywords]))
-        api_response = api_instance.gifs_search_get(
-            self.options.get("api_key"),
-            ",".join(keywords[:max_keywords]),
-            limit=1
+        # tag = random.choice(keywords)
+        tag = ", ".join(keywords)
+        params = {
+            "api_key": self.options.get("api_key"),
+            "s": tag,
+        }
+    
+        response = requests.get(
+            f"{self.options.get('api')}/v1/gifs/translate",
+            params=params,
+            timeout=self.options.get("timeout"),
         )
-        gif = api_response.data[0]
-        image_url = gif.images.original.mp4
+        response.raise_for_status()
+
+        parsed_response = response.json()
+        image_url = parsed_response["data"]["images"]["original_mp4"]["mp4"]
         img_response = requests.get(
             image_url,
             timeout=self.options.get("timeout")
@@ -43,6 +46,6 @@ class Gifs:
         file_path = os.path.join(output_folder, FOLDER_PREFIX, file_name)
         with open(file_path, "wb") as fl:
             fl.write(img_response.content)
-        logger.info('Downloaded %s', file_path)
-        section["media_path"] = file_path
+        logger.info('Tag: %s, Keywords: %s, Downloaded %s', tag, keywords, file_path)
+        section["media"]["broll_path"] = file_path
         return section

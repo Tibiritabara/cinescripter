@@ -1,0 +1,44 @@
+name: 🛠️ Feature Request
+description: Request a new feature or capability
+labels: [feature]
+body:
+  - type: markdown
+    attributes:
+      value: Please make sure that this is a feature request.
+  - type: dropdown
+    attributes:
+      label: Are you willing to contribute it
+      options:
+        - 'Yes'
+        - 'No'
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Describe the feature and the current behaviour/state
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Will this change the current interface? How?
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Who will benefit with this feature?
+    validations:
+       required: false
+  - type: textarea
+    attributes:
+      label: Please specify the use cases for this feature
+      render: shell
+    validations:
+       required: true
+  - type: textarea
+    attributes:
+      label: Any Other info
+      render: shell
+    validations:
+      required: false
