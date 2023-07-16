@@ -15,19 +15,20 @@ chardet = "*"
 charset-normalizer = "*"
 pandas = "*"
 elevenlabs = "*"
-pillow = "*"
-giphy-client = "*"
+pillow = "<10.0.0"
 matplotlib = "*"
 scikit-learn = "*"
 scipy = "*"
 plotly = "*"
 weaviate-client = "*"
+pydantic = ">1.8.0"
 
 [dev-packages]
 jupyterlab = "*"
 pylint = "*"
 autopep8 = "*"
 pandas = "*"
+gdown = "*"
 
 [requires]
 python_version = "3.11"

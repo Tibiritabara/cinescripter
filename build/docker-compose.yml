@@ -1,0 +1,48 @@
+version: '3.9'
+
+networks:
+  appnet:
+    driver: bridge
+
+services:
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8000'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:1.20.1
+    ports:
+    - 8000:8000
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_APIKEY_ENABLED: 'true'
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: 'weaviate-secret-key'
+      AUTHENTICATION_APIKEY_USERS: 'example@cinescripter.com'
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: ''
+      CLUSTER_HOSTNAME: 'node1'
+    volumes:
+      - /var/weaviate:/var/lib/weaviate
+    labels:
+      com.docker.compose.app: "weaviate"
+    networks:
+      - appnet
+
+  cinescripter:
+    build: 
+      context: ../
+      dockerfile: ./build/Dockerfile
+    env_file:
+      - ../.env
+    labels:
+      com.docker.compose.app: "cinescripter"
+    depends_on:
+      - weaviate
+    networks:
+      - appnet
